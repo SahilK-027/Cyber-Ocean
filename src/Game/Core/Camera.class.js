@@ -3,7 +3,7 @@ import Game from '../Game.class';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export default class Camera {
-  constructor(fov = 35, near = 0.1, far = 100) {
+  constructor(fov = 35, near = 0.1, far = 1000) {
     this.game = Game.getInstance();
     this.canvas = this.game.canvas;
     this.sizes = this.game.sizes;
@@ -21,7 +21,7 @@ export default class Camera {
       near,
       far
     );
-    this.cameraInstance.position.set(4.0, -0.8, 3.4);
+    this.cameraInstance.position.set(4.0, 1.5, 3.4);
     this.scene.add(this.cameraInstance);
   }
 

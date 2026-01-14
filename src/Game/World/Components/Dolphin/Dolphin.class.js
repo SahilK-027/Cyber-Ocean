@@ -15,6 +15,12 @@ export default class Dolphin {
 
     this.modelResource = this.resources.items.dolphinAnimatedModel;
 
+    this.outset = 0.01;
+    this._tmpBasePos = new THREE.Vector3();
+    this._tmpSkinned = new THREE.Vector3();
+    this._tmpLocalOut = new THREE.Vector3();
+    this._tmpNormal = new THREE.Vector3();
+
     this.setMaterial();
     this.setModelInstance();
     this.setAnimation();
@@ -26,9 +32,9 @@ export default class Dolphin {
     this.material = new THREE.ShaderMaterial({
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
-      side: THREE.DoubleSide,
-      transparent: true,
-      depthWrite: false,
+      // side: THREE.DoubleSide,
+      // transparent: true,
+      // depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
@@ -46,6 +52,7 @@ export default class Dolphin {
       }
     });
     this.dolphin.position.set(0, 0, 0.75);
+    this.dolphin.rotation.set(0, 0, 0);
 
     this.scene.add(this.dolphin);
   }
@@ -271,7 +278,7 @@ export default class Dolphin {
 
     // Number of sparkle points - reduced for plexus effect
     this.sparkleCount = 1000;
-    this.connectionDistance = 0.25; // Max distance for connecting lines
+    this.connectionDistance = 0.15; // Max distance for connecting lines
 
     // Create a sampler from the dolphin mesh
     this.sampler = new MeshSurfaceSampler(this.dolphinMesh)
@@ -307,6 +314,7 @@ export default class Dolphin {
         offset: tempPosition
           .clone()
           .sub(new THREE.Vector3().fromBufferAttribute(posAttr, closestIndex)),
+        normal: tempNormal.clone(),
         random: Math.random(),
         size: Math.random() * 0.5 + 0.5,
       });
@@ -397,7 +405,7 @@ export default class Dolphin {
     this.linesMaterial = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.6,
+      opacity: 1.0,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -411,49 +419,65 @@ export default class Dolphin {
     if (!this.dolphinMesh || !this.sparklesGeometry) return;
 
     const positionAttribute = this.sparklesGeometry.getAttribute('position');
-    const skinnedPositions = [];
 
-    // Make sure skeleton is updated before we sample
-    if (this.dolphinMesh.skeleton) {
-      this.dolphinMesh.skeleton.update();
-    }
+    // ensure skeleton/matrices are up-to-date
+    if (this.dolphinMesh.skeleton) this.dolphinMesh.skeleton.update();
     this.dolphinMesh.updateMatrixWorld(true);
 
-    const skinned = new THREE.Vector3();
-    const basePos = new THREE.Vector3();
+    // local reusable temps
+    const basePos = this._tmpBasePos;
+    const skinned = this._tmpSkinned;
+    const localOut = this._tmpLocalOut;
+    const normalV = this._tmpNormal;
 
+    const posAttr = this.dolphinMesh.geometry.getAttribute('position');
+
+    const skinnedPositions = []; // used to make connection lines
+
+    // Loop sparkles
     for (let i = 0; i < this.sparkleCount; i++) {
       const data = this.sampledData[i];
 
-      // Use applyBoneTransform (newer API) or boneTransform
+      // read base vertex local position
+      basePos.fromBufferAttribute(posAttr, data.vertexIndex);
+
+      // compute local point offset along sampled normal (local space)
+      if (data.normal) {
+        normalV.copy(data.normal).normalize();
+        localOut.copy(basePos).addScaledVector(normalV, this.outset);
+      } else {
+        // fallback: use stored offset (less ideal)
+        localOut.copy(basePos).add(data.offset);
+      }
+
+      // Apply skinning transform. We use the vertexIndex as the skin weights anchor so
+      // the offset follows the same bone blend as the vertex — a small approximation but works well.
       if (this.dolphinMesh.applyBoneTransform) {
-        // Three.js r159+ uses applyBoneTransform
-        const posAttr = this.dolphinMesh.geometry.getAttribute('position');
-        basePos.fromBufferAttribute(posAttr, data.vertexIndex);
-        skinned.copy(basePos);
+        // newer API
+        skinned.copy(localOut);
         this.dolphinMesh.applyBoneTransform(data.vertexIndex, skinned);
         skinned.applyMatrix4(this.dolphinMesh.matrixWorld);
       } else if (this.dolphinMesh.boneTransform) {
-        // Older API
+        // older API
+        skinned.copy(localOut);
         this.dolphinMesh.boneTransform(data.vertexIndex, skinned);
         skinned.applyMatrix4(this.dolphinMesh.matrixWorld);
       } else {
-        // Fallback: use original position with world matrix
-        const posAttr = this.dolphinMesh.geometry.getAttribute('position');
-        basePos.fromBufferAttribute(posAttr, data.vertexIndex);
-        skinned.copy(basePos).add(data.offset);
-        skinned.applyMatrix4(this.dolphinMesh.matrixWorld);
+        // fallback: world transform without skinning
+        skinned.copy(localOut).applyMatrix4(this.dolphinMesh.matrixWorld);
       }
 
+      // write to particles buffer (world coords)
       positionAttribute.array[i * 3] = skinned.x;
       positionAttribute.array[i * 3 + 1] = skinned.y;
       positionAttribute.array[i * 3 + 2] = skinned.z;
-      skinnedPositions.push(skinned.clone());
+
+      skinnedPositions.push(skinned.clone()); // clone for distance tests later
     }
 
     positionAttribute.needsUpdate = true;
 
-    // Update connection lines
+    // update connection lines
     this.updateConnectionLines(skinnedPositions);
   }
 
