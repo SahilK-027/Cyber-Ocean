@@ -17,6 +17,8 @@ void main() {
     gl_Position = projectedPosition;
 
     vUv = uv;
-    vNormal = normalize(normalMatrix * normal);
-    vPosition = viewPosition.xyz;
+    // Model normal
+    vec4 modelNormal = modelMatrix * vec4(normal, 0.0);
+    vNormal = modelNormal.xyz;
+    vPosition = modelPosition.xyz;
 }

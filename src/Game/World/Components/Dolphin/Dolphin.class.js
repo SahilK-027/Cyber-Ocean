@@ -23,8 +23,12 @@ export default class Dolphin {
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
       side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
+        uBaseColor: { value: new THREE.Color(0x57a0ff) },
       },
     });
   }
@@ -63,6 +67,16 @@ export default class Dolphin {
     if (!this.game.isDebugEnabled) return;
 
     const debug = this.game.debug;
+
+    // Base Color control
+    debug.add(
+      this.material.uniforms.uBaseColor,
+      'value',
+      {
+        label: 'Base Color',
+      },
+      'Dolphin'
+    );
 
     // Material controls
     const materialSettings = {
