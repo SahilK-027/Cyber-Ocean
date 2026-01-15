@@ -1,4 +1,4 @@
-# Plexus Dolphin
+# Cyber Ocean
 
 A shader project using Domain-Warped Voronoi and Fresnel transparency to create an organic, neural-network effect on a 3D dolphin mesh.
 
