@@ -9,7 +9,6 @@ export default class PerformanceMonitor {
     this.debug = this.game.debug;
     this.isDebugEnabled = this.game.isDebugEnabled;
 
-    // Performance metrics for monitoring
     this.metrics = {
       fps: 0,
       frameTime: 0,
@@ -31,10 +30,9 @@ export default class PerformanceMonitor {
     this.statsNative.dom.style.top = '70px';
     document.body.append(this.statsNative.dom);
 
-    // Track frame times for FPS calculation
     this.lastTime = performance.now();
     this.frameCount = 0;
-    this.fpsUpdateInterval = 500; // Update FPS every 500ms
+    this.fpsUpdateInterval = 500;
     this.lastFpsUpdate = 0;
 
     if (this.isDebugEnabled) {
@@ -56,7 +54,6 @@ export default class PerformanceMonitor {
     const now = performance.now();
     this.frameCount++;
 
-    // Update FPS periodically
     if (now - this.lastFpsUpdate >= this.fpsUpdateInterval) {
       const elapsed = now - this.lastFpsUpdate;
       this.metrics.fps = Math.round((this.frameCount * 1000) / elapsed);
@@ -65,19 +62,16 @@ export default class PerformanceMonitor {
       this.lastFpsUpdate = now;
     }
 
-    // Update renderer info
     const info = this.renderer.info;
     this.metrics.drawCalls = info.render.calls;
     this.metrics.triangles = info.render.triangles;
 
-    // Update memory if available
     if (performance.memory) {
       this.metrics.memory = Math.round(performance.memory.usedJSHeapSize / 1048576);
     }
   }
 
   initTweakPane() {
-    // FPS graph monitor
     this.debug.addMonitor(this.metrics, 'fps', {
       label: 'FPS',
       graph: true,
@@ -85,7 +79,6 @@ export default class PerformanceMonitor {
       max: 144,
     }, 'Performance');
 
-    // Memory (Chrome only)
     if (performance.memory) {
       this.debug.addMonitor(this.metrics, 'memory', {
         label: 'Memory (MB)',
@@ -94,7 +87,6 @@ export default class PerformanceMonitor {
 
     this.debug.addSeparator('Performance');
 
-    // ThreePerf graph toggle
     this.debug.add(this.stats, 'showGraph', { label: 'Perf Graph' }, 'Performance');
   }
 }

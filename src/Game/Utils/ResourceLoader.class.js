@@ -12,7 +12,6 @@ export default class ResourceLoader extends EventEmitter {
     this.items = {};
     this.sourceByUrl = {};
 
-    // Build a map of every URL → its src record
     this.sources.forEach((src) => {
       const paths = Array.isArray(src.path) ? src.path : [src.path];
       paths.forEach((url) => {
@@ -29,11 +28,9 @@ export default class ResourceLoader extends EventEmitter {
       }
     });
 
-    // Total URLs we expect Three.js to load
     this.toLoad = Object.keys(this.sourceByUrl).length;
     this.loaded = 0;
 
-    // Create and wire the manager
     this.manager = new THREE.LoadingManager();
 
     this.manager.onProgress = (_url, itemsLoaded, itemsTotal) => {
@@ -41,10 +38,8 @@ export default class ResourceLoader extends EventEmitter {
       if (typeof _url === 'string') {
         urlKey = _url;
       } else if (Array.isArray(_url) && _url.length) {
-        // CubeTextureLoader passes an array of URLs
         urlKey = _url[0];
       } else if (_url && typeof _url === 'object') {
-        // Some loaders pass objects with url/src fields
         urlKey = _url.url || _url.src || JSON.stringify(_url);
       } else {
         urlKey = String(_url);
@@ -97,28 +92,22 @@ export default class ResourceLoader extends EventEmitter {
     this.setLoaders();
     this.initLoading();
 
-    // If there was nothing to load, fire the loaded event right away
     if (this.toLoad === 0) {
-      // Give the manager a tick to settle, then call onLoad
       setTimeout(() => this.manager.onLoad(), 0);
     }
   }
 
   setLoaders() {
-    // feed the manager into each loader
     this.loaders = {};
 
-    // Draco‐compression for glTF‑compressed
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('/draco/');
     this.loaders.dracoLoader = dracoLoader;
 
-    // glTF loaders
     this.loaders.gltfCompressLoader = new GLTFLoader(this.manager);
     this.loaders.gltfCompressLoader.setDRACOLoader(dracoLoader);
     this.loaders.gltfLoader = new GLTFLoader(this.manager);
 
-    // textures
     this.loaders.textureLoader = new THREE.TextureLoader(this.manager);
     this.loaders.hdriLoader = new HDRLoader(this.manager);
     this.loaders.cubeTextureLoader = new THREE.CubeTextureLoader(this.manager);

@@ -11,34 +11,30 @@ export default class Camera {
     this.debug = this.game.debug;
     this.isDebugEnabled = this.game.isDebugEnabled;
 
-    // Ratio overflow settings
     this.idealRatio = 16 / 9;
     this.ratioOverflow = 0;
     this.initialCameraPosition = new THREE.Vector3(4.0, 0.8, 3.4);
     this.baseMaxDistance = 8;
 
-    // Parallax settings
     this.parallaxAmplitude = 0.2;
     this.parallaxEasingSpeed = 10;
     this.parallaxOffset = new THREE.Vector2(0, 0);
 
-    // Underwater floating motion settings
     this.floatTime = 0;
     this.floatAmplitude = {
-      x: 0.033, // Subtle horizontal sway
-      y: 0.055, // Vertical bob
-      z: 0.066, // Depth drift
+      x: 0.033,
+      y: 0.055,
+      z: 0.066,
     };
     this.floatFrequency = {
-      x: 0.3, // Slow horizontal
-      y: 0.5, // Medium vertical
-      z: 0.6, // Very slow depth
+      x: 0.3,
+      y: 0.5,
+      z: 0.6,
     };
-    // Slight rotation wobble for that underwater feel
     this.rotationAmplitude = {
-      x: 0.008, // Pitch
-      y: 0.005, // Yaw
-      z: 0.01, // Roll
+      x: 0.008,
+      y: 0.005,
+      z: 0.01,
     };
     this.rotationFrequency = {
       x: 0.4,
@@ -46,13 +42,11 @@ export default class Camera {
       z: 0.35,
     };
 
-    // Randomness settings for organic underwater feel
     this.randomness = {
       enabled: true,
-      intensity: 0.5, // 0-1, how much randomness to add
-      speed: 0.8, // How fast the random values change
+      intensity: 0.5,
+      speed: 0.8,
     };
-    // Internal noise state (simple pseudo-random noise)
     this.noiseOffsets = {
       x: Math.random() * 1000,
       y: Math.random() * 1000,
@@ -72,10 +66,9 @@ export default class Camera {
     }
   }
 
-  // Simple smooth noise function (attempt to mimic Perlin-like behavior)
+  // Lightweight smooth noise used to avoid importing a full noise library.
   smoothNoise(t, offset) {
     const x = t + offset;
-    // Layered sine waves at different frequencies for organic randomness
     return (
       Math.sin(x * 1.0) * 0.5 +
       Math.sin(x * 2.3) * 0.25 +
@@ -87,7 +80,6 @@ export default class Camera {
   initDebugGUI() {
     const folderName = 'Camera Float';
 
-    // Float amplitude
     this.debug.add(
       this.floatAmplitude,
       'x',
@@ -122,7 +114,6 @@ export default class Camera {
       folderName
     );
 
-    // Float frequency
     this.debug.add(
       this.floatFrequency,
       'x',
@@ -157,7 +148,6 @@ export default class Camera {
       folderName
     );
 
-    // Rotation amplitude
     this.debug.add(
       this.rotationAmplitude,
       'x',
@@ -192,7 +182,6 @@ export default class Camera {
       folderName
     );
 
-    // Rotation frequency
     this.debug.add(
       this.rotationFrequency,
       'x',
@@ -227,7 +216,6 @@ export default class Camera {
       folderName
     );
 
-    // Randomness controls
     this.debug.add(
       this.randomness,
       'enabled',
@@ -259,7 +247,6 @@ export default class Camera {
       folderName
     );
 
-    // Parallax
     this.debug.add(
       this,
       'parallaxAmplitude',
@@ -308,6 +295,8 @@ export default class Camera {
     this.controls.enableZoom = true;
     this.controls.enableRotate = true;
     this.controls.maxDistance = this.baseMaxDistance;
+    this.controls.maxPolarAngle = Math.PI / 1.5;
+    this.controls.minPolarAngle = Math.PI / 4;
     this.controls.minDistance = 4;
   }
 
@@ -316,7 +305,7 @@ export default class Camera {
     this.ratioOverflow = Math.max(1, this.idealRatio / currentRatio) - 1;
 
     const baseDistance = this.initialCameraPosition.length();
-    const additionalDistance = baseDistance * this.ratioOverflow * 0.5;
+    const additionalDistance = baseDistance * this.ratioOverflow * 0.27;
     const direction = this.initialCameraPosition.clone().normalize();
     const newDistance = baseDistance + additionalDistance;
     const adjustedPosition = direction.multiplyScalar(newDistance);
@@ -338,7 +327,6 @@ export default class Camera {
     if (deltaTime) {
       this.floatTime += deltaTime;
 
-      // Calculate random noise contribution
       let noiseX = 0,
         noiseY = 0,
         noiseZ = 0;
@@ -377,7 +365,6 @@ export default class Camera {
           intensity;
       }
 
-      // Underwater floating motion - layered sine waves for organic feel
       const floatX =
         Math.sin(this.floatTime * this.floatFrequency.x * Math.PI * 2) *
           this.floatAmplitude.x +
@@ -399,7 +386,6 @@ export default class Camera {
           this.floatAmplitude.z +
         noiseZ;
 
-      // Subtle rotation wobble with randomness
       const rotX =
         Math.sin(this.floatTime * this.rotationFrequency.x * Math.PI * 2) *
           this.rotationAmplitude.x +
@@ -413,7 +399,6 @@ export default class Camera {
           this.rotationAmplitude.z +
         noiseRotZ;
 
-      // Parallax movement based on mouse position
       let parallaxX = 0;
       let parallaxY = 0;
 
@@ -424,12 +409,10 @@ export default class Camera {
           -mouseManager.smoothedMousePosition.y * this.parallaxAmplitude;
       }
 
-      // Combine parallax with floating motion
       const targetX = parallaxX + floatX;
       const targetY = parallaxY + floatY;
       const targetZ = floatZ;
 
-      // Smooth easing for combined movement
       this.cameraGroup.position.x +=
         (targetX - this.cameraGroup.position.x) *
         this.parallaxEasingSpeed *
@@ -443,12 +426,11 @@ export default class Camera {
         this.parallaxEasingSpeed *
         deltaTime;
 
-      // Apply rotation wobble
       this.cameraGroup.rotation.x = rotX;
       this.cameraGroup.rotation.y = rotY;
       this.cameraGroup.rotation.z = rotZ;
 
-      // Calculate parallax offset for shader use
+      // Normalized parallax offset for shader use (world-to-view approximation).
       const fov = this.cameraInstance.fov * (Math.PI / 180);
       const distance = this.cameraInstance.position.length();
       const height = 2 * Math.tan(fov / 2) * distance;

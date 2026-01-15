@@ -15,30 +15,26 @@ float random(vec2 co) {
 void main() {
   vec2 direction = vUv - 0.5;
   float dist = length(direction);
-  
-  // Chromatic aberration
+
   float aberrationAmount = uAberration + length(uMouseInfluence) * 0.002;
   vec2 offset = direction * dist * aberrationAmount;
-  
+
   float r = texture2D(tDiffuse, vUv + offset).r;
   vec2 ga = texture2D(tDiffuse, vUv).ga;
   float b = texture2D(tDiffuse, vUv - offset).b;
-  
+
   vec3 color = vec3(r, ga.x, b);
-  
-  // Glow
+
   float luminance = dot(color, vec3(0.299, 0.587, 0.114));
   color += color * luminance * uGlowIntensity;
-  
-  // Vignette
+
   vec2 uv = vUv * (1.0 - vUv.yx);
   float vignette = uv.x * uv.y * 15.0;
   vignette = pow(vignette, uVignetteStrength);
   color *= vignette;
-  
-  // Film grain
+
   float grain = random(vUv + fract(uTime)) * 2.0 - 1.0;
   color += grain * uGrainIntensity;
-  
+
   gl_FragColor = vec4(color, ga.y);
 }

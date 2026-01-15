@@ -9,7 +9,7 @@ import Game from '../Game.class';
 import combinedVertexShader from '../../Shaders/PostProcessing/combined.vert.glsl';
 import combinedFragmentShader from '../../Shaders/PostProcessing/combined.frag.glsl';
 
-// Combined post-processing shader - single pass for better performance
+// Single combined post-processing shader pass (keeps the composer lightweight).
 const CombinedShader = {
   uniforms: {
     tDiffuse: { value: null },
@@ -45,15 +45,12 @@ export default class PostProcessing {
   }
 
   setupPasses() {
-    // Render pass
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
 
-    // Single combined pass for all effects
     this.combinedPass = new ShaderPass(CombinedShader);
     this.composer.addPass(this.combinedPass);
 
-    // Gamma correction pass (must be last to convert to sRGB)
     const gammaCorrectionPass = new ShaderPass(GammaCorrectionShader);
     // this.composer.addPass(gammaCorrectionPass);
   }

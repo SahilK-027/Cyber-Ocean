@@ -79,7 +79,6 @@ export default class Renderer {
       this.perf.beginFrame();
     }
 
-    // Use post-processing composer if available, otherwise direct render
     if (this.game.postProcessing) {
       this.game.postProcessing.render();
     } else {

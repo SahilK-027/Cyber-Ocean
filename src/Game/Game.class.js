@@ -10,7 +10,6 @@ import DebugPane from './Utils/DebugPane.class';
 
 export default class Game {
   constructor(canvas, resources, debugMode) {
-    // Singleton
     if (Game.instance) {
       return Game.instance;
     }
@@ -84,7 +83,6 @@ export default class Game {
           ? child.material
           : [child.material];
         mats.forEach((m) => {
-          // dispose textures
           for (const key in m) {
             const prop = m[key];
             if (prop && prop.isTexture) prop.dispose();
@@ -99,7 +97,6 @@ export default class Game {
     this.postProcessing.dispose();
     if (this.debug) this.debug.dispose();
 
-    // Null references
     this.canvas = null;
     this.scene = null;
     this.camera = null;

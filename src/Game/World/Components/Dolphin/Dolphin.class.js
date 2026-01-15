@@ -32,9 +32,6 @@ export default class Dolphin {
     this.material = new THREE.ShaderMaterial({
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
-      // side: THREE.DoubleSide,
-      // transparent: true,
-      // depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
@@ -77,7 +74,6 @@ export default class Dolphin {
 
     const debug = this.game.debug;
 
-    // Base Color control
     debug.add(
       this.material.uniforms.uBaseColor,
       'value',
@@ -87,7 +83,6 @@ export default class Dolphin {
       'Dolphin'
     );
 
-    // Sparkle controls
     if (this.sparklesMaterial) {
       debug.add(
         this.sparklesMaterial.uniforms.uSize,
@@ -144,7 +139,6 @@ export default class Dolphin {
       );
     }
 
-    // Material controls
     const materialSettings = {
       wireframe: false,
       visible: true,
@@ -188,7 +182,6 @@ export default class Dolphin {
       'Dolphin'
     );
 
-    // Animation controls
     if (this.animation?.action) {
       const animSettings = {
         timeScale: 1,
@@ -227,7 +220,6 @@ export default class Dolphin {
       );
     }
 
-    // Reset button
     debug.addButton(
       {
         label: 'Reset Transform',
@@ -250,7 +242,6 @@ export default class Dolphin {
       this.material.uniforms.uTime.value = this.time.elapsedTime;
     }
 
-    // Update sparkles to follow animated mesh
     if (this.sparkles && this.dolphinMesh) {
       this.updateSparklePositions();
     }
@@ -261,7 +252,6 @@ export default class Dolphin {
   }
 
   setupSurfaceSampling() {
-    // Find the skinned mesh in the dolphin model
     this.dolphinMesh = null;
     this.dolphin.traverse((child) => {
       if (child.isSkinnedMesh) {
@@ -274,16 +264,13 @@ export default class Dolphin {
       return;
     }
 
-    // Number of sparkle points - reduced for plexus effect
     this.sparkleCount = 1200;
-    this.connectionDistance = 0.15; // Max distance for connecting lines
+    this.connectionDistance = 0.15;
 
-    // Create a sampler from the dolphin mesh
     this.sampler = new MeshSurfaceSampler(this.dolphinMesh)
       .setWeightAttribute(null)
       .build();
 
-    // Sample points and store vertex indices for skinning
     this.sampledData = [];
     const tempPosition = new THREE.Vector3();
     const tempNormal = new THREE.Vector3();
@@ -293,7 +280,6 @@ export default class Dolphin {
     for (let i = 0; i < this.sparkleCount; i++) {
       this.sampler.sample(tempPosition, tempNormal);
 
-      // Find closest vertex index for bone transform
       let closestIndex = 0;
       let closestDist = Infinity;
       const searchVec = new THREE.Vector3();
@@ -318,7 +304,6 @@ export default class Dolphin {
       });
     }
 
-    // Create geometry for sparkles (nodes)
     const positions = new Float32Array(this.sparkleCount * 3);
     const randoms = new Float32Array(this.sparkleCount);
     const sizes = new Float32Array(this.sparkleCount);
@@ -342,7 +327,6 @@ export default class Dolphin {
       new THREE.BufferAttribute(sizes, 1)
     );
 
-    // Create material for sparkles (glowing nodes)
     this.sparklesMaterial = new THREE.ShaderMaterial({
       vertexShader: sparkleVertexShader,
       fragmentShader: sparkleFragmentShader,
@@ -358,36 +342,23 @@ export default class Dolphin {
       },
     });
 
-    // Create points (nodes)
     this.sparkles = new THREE.Points(
       this.sparklesGeometry,
       this.sparklesMaterial
     );
     this.sparkles.frustumCulled = false;
 
-    // Create lines geometry for connections
     this.setupConnectionLines();
 
-    // Add to scene (not dolphin, we'll update positions manually in world space)
     this.scene.add(this.sparkles);
 
-    // Debug: check which skinning method is available
-    console.log('SkinnedMesh methods:', {
-      applyBoneTransform: !!this.dolphinMesh.applyBoneTransform,
-      boneTransform: !!this.dolphinMesh.boneTransform,
-      skeleton: !!this.dolphinMesh.skeleton,
-      isSkinnedMesh: this.dolphinMesh.isSkinnedMesh,
-    });
-
-    // Initialize positions on first frame
     this.updateSparklePositions();
   }
 
   setupConnectionLines() {
-    // Pre-calculate max possible connections
-    const maxConnections = this.sparkleCount * 10; // Estimate
-    this.linePositions = new Float32Array(maxConnections * 6); // 2 points per line, 3 coords each
-    this.lineColors = new Float32Array(maxConnections * 6); // RGB for each vertex
+    const maxConnections = this.sparkleCount * 10;
+    this.linePositions = new Float32Array(maxConnections * 6);
+    this.lineColors = new Float32Array(maxConnections * 6);
 
     this.linesGeometry = new THREE.BufferGeometry();
     this.linesGeometry.setAttribute(
@@ -418,11 +389,9 @@ export default class Dolphin {
 
     const positionAttribute = this.sparklesGeometry.getAttribute('position');
 
-    // ensure skeleton/matrices are up-to-date
     if (this.dolphinMesh.skeleton) this.dolphinMesh.skeleton.update();
     this.dolphinMesh.updateMatrixWorld(true);
 
-    // local reusable temps
     const basePos = this._tmpBasePos;
     const skinned = this._tmpSkinned;
     const localOut = this._tmpLocalOut;
@@ -430,52 +399,43 @@ export default class Dolphin {
 
     const posAttr = this.dolphinMesh.geometry.getAttribute('position');
 
-    const skinnedPositions = []; // used to make connection lines
+    const skinnedPositions = [];
 
-    // Loop sparkles
     for (let i = 0; i < this.sparkleCount; i++) {
       const data = this.sampledData[i];
 
-      // read base vertex local position
       basePos.fromBufferAttribute(posAttr, data.vertexIndex);
 
-      // compute local point offset along sampled normal (local space)
       if (data.normal) {
         normalV.copy(data.normal).normalize();
         localOut.copy(basePos).addScaledVector(normalV, this.outset);
       } else {
-        // fallback: use stored offset (less ideal)
         localOut.copy(basePos).add(data.offset);
       }
 
       // Apply skinning transform. We use the vertexIndex as the skin weights anchor so
       // the offset follows the same bone blend as the vertex — a small approximation but works well.
       if (this.dolphinMesh.applyBoneTransform) {
-        // newer API
         skinned.copy(localOut);
         this.dolphinMesh.applyBoneTransform(data.vertexIndex, skinned);
         skinned.applyMatrix4(this.dolphinMesh.matrixWorld);
       } else if (this.dolphinMesh.boneTransform) {
-        // older API
         skinned.copy(localOut);
         this.dolphinMesh.boneTransform(data.vertexIndex, skinned);
         skinned.applyMatrix4(this.dolphinMesh.matrixWorld);
       } else {
-        // fallback: world transform without skinning
         skinned.copy(localOut).applyMatrix4(this.dolphinMesh.matrixWorld);
       }
 
-      // write to particles buffer (world coords)
       positionAttribute.array[i * 3] = skinned.x;
       positionAttribute.array[i * 3 + 1] = skinned.y;
       positionAttribute.array[i * 3 + 2] = skinned.z;
 
-      skinnedPositions.push(skinned.clone()); // clone for distance tests later
+      skinnedPositions.push(skinned.clone());
     }
 
     positionAttribute.needsUpdate = true;
 
-    // update connection lines
     this.updateConnectionLines(skinnedPositions);
   }
 
@@ -489,20 +449,16 @@ export default class Dolphin {
         const dist = positions[i].distanceTo(positions[j]);
 
         if (dist < this.connectionDistance) {
-          // Fade based on distance
           const alpha = 1.0 - dist / this.connectionDistance;
 
-          // Line start point
           this.linePositions[lineIndex * 6] = positions[i].x;
           this.linePositions[lineIndex * 6 + 1] = positions[i].y;
           this.linePositions[lineIndex * 6 + 2] = positions[i].z;
 
-          // Line end point
           this.linePositions[lineIndex * 6 + 3] = positions[j].x;
           this.linePositions[lineIndex * 6 + 4] = positions[j].y;
           this.linePositions[lineIndex * 6 + 5] = positions[j].z;
 
-          // Colors with alpha baked in
           const mixedColor = color1
             .clone()
             .lerp(color2, this.sampledData[i].random);
@@ -516,7 +472,6 @@ export default class Dolphin {
 
           lineIndex++;
 
-          // Safety check
           if (lineIndex >= this.linePositions.length / 6) break;
         }
       }

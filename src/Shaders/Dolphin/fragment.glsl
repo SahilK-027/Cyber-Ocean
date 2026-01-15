@@ -7,17 +7,15 @@ varying vec3 vPosition;
 
 void main() {
     vec3 normal = normalize(vNormal);
-    if(!gl_FrontFacing){
+    if(!gl_FrontFacing) {
         normal *= -1.0;
     }
 
-    // Fresnel
     vec3 viewDirection = normalize(vPosition - cameraPosition);
     float fresnel = dot(viewDirection, normal) + 1.0;
     fresnel = pow(fresnel, 2.5);
 
     gl_FragColor = vec4(uBaseColor, fresnel);
 
-    // #include <tonemapping_fragment>
     #include <colorspace_fragment>
 }
