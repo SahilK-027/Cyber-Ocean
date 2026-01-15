@@ -3,6 +3,7 @@ import Game from '../Game.class';
 import Lighting from './Components/Lighting/Lighting.class';
 import Dolphin from './Components/Dolphin/Dolphin.class';
 import Wormhole from './Components/Wormhole/Wormhole.class';
+import FlowField from './Components/FlowField/FlowField.class';
 
 export default class World {
   constructor() {
@@ -15,12 +16,16 @@ export default class World {
     this.lighting = new Lighting({ helperEnabled: false });
 
     this.wormhole = new Wormhole();
+    this.flowField = new FlowField();
     this.dolphin = new Dolphin();
   }
 
   update() {
     if (this.wormhole) {
       this.wormhole.update();
+    }
+    if (this.flowField) {
+      this.flowField.update();
     }
     if (this.dolphin) {
       this.dolphin.update();
