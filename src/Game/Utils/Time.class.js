@@ -16,7 +16,7 @@ export default class Time extends EventEmitter {
 
   animate() {
     const currentTime = Date.now();
-    this.delta = (currentTime - this.current) / 1000;
+    this.delta = Math.min((currentTime - this.current) / 1000, 0.1);
     this.current = currentTime;
     this.elapsedTime = (this.current - this.start) / 1000;
 

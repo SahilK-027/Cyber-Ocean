@@ -12,7 +12,6 @@ export default class World {
     /**
      * Scene objects
      */
-    this.scene.fog = new THREE.FogExp2(0x0a0a1a, 0.008);
     this.lighting = new Lighting({ helperEnabled: false });
 
     this.wormhole = new Wormhole();
