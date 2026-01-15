@@ -15,7 +15,7 @@ export default class Dolphin {
 
     this.modelResource = this.resources.items.dolphinAnimatedModel;
 
-    this.outset = 0.01;
+    this.outset = 0.02;
     this._tmpBasePos = new THREE.Vector3();
     this._tmpSkinned = new THREE.Vector3();
     this._tmpLocalOut = new THREE.Vector3();
@@ -51,8 +51,6 @@ export default class Dolphin {
         child.material = this.material;
       }
     });
-    this.dolphin.position.set(0, 0, 0.75);
-    this.dolphin.rotation.set(0, 0, 0);
 
     this.scene.add(this.dolphin);
   }
@@ -277,7 +275,7 @@ export default class Dolphin {
     }
 
     // Number of sparkle points - reduced for plexus effect
-    this.sparkleCount = 1000;
+    this.sparkleCount = 1200;
     this.connectionDistance = 0.15; // Max distance for connecting lines
 
     // Create a sampler from the dolphin mesh

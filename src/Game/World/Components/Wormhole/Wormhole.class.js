@@ -8,22 +8,29 @@ export default class Wormhole {
     this.game = Game.getInstance();
     this.scene = this.game.scene;
     this.time = this.game.time;
+    this.debug = this.game.debug;
+    this.isDebugEnabled = this.game.isDebugEnabled;
 
-    // Config
+    // Config - centered around origin (where dolphin is)
     this.config = {
-      // Speedlines
+      // Speedlines - symmetric around origin
       speedLineCount: 200,
       lineSpeed: 12,
       innerRadius: 20,
       outerRadius: 40,
-      startZ: 30,
-      endZ: -80,
+      startZ: 100,
+      endZ: -100,
+
+      // Speed line colors
+      speedLineColor1: new THREE.Color(0x00ffff), // Cyan
+      speedLineColor2: new THREE.Color(0x00a1ff), // Light blue
+      speedLineColor3: new THREE.Color(0x91cdff), // Purple
 
       // Tube config
       tubeRadius: 50,
       tubeSegments: 70,
       tubeRadialSegments: 30,
-      tubeLength: 100,
+      tubeLength: 1000,
       tubeSpeed: 0.02,
       curvePoints: 5,
     };
@@ -37,30 +44,88 @@ export default class Wormhole {
 
     this.createSpeedLines();
     this.createTube();
+
+    if (this.isDebugEnabled) {
+      this.initDebugGUI();
+    }
+  }
+
+  initDebugGUI() {
+    const folderName = 'Speed Lines';
+
+    this.debug.add(
+      this.config,
+      'speedLineColor1',
+      {
+        label: 'Color 1 (Cyan)',
+        onChange: () => this.updateSpeedLineColors(),
+      },
+      folderName
+    );
+
+    this.debug.add(
+      this.config,
+      'speedLineColor2',
+      {
+        label: 'Color 2 (Blue)',
+        onChange: () => this.updateSpeedLineColors(),
+      },
+      folderName
+    );
+
+    this.debug.add(
+      this.config,
+      'speedLineColor3',
+      {
+        label: 'Color 3 (Purple)',
+        onChange: () => this.updateSpeedLineColors(),
+      },
+      folderName
+    );
+
+    this.debug.add(
+      this.config,
+      'lineSpeed',
+      {
+        min: 1,
+        max: 30,
+        step: 0.5,
+        label: 'Line Speed',
+        onChange: (value) => {
+          for (const line of this.speedLines) {
+            line.speed = value * (0.5 + Math.random() * 0.5);
+          }
+        },
+      },
+      folderName
+    );
+  }
+
+  updateSpeedLineColors() {
+    const colors = [
+      this.config.speedLineColor1,
+      this.config.speedLineColor2,
+      this.config.speedLineColor3,
+    ];
+
+    for (const line of this.speedLines) {
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      line.mesh.material.color.copy(color);
+    }
   }
 
   createTube() {
-    // Create initial curve points extending backward (negative Z)
+    // Create curve points centered around origin
+    const halfLength = this.config.tubeLength / 2;
     const curvePoints = [];
     for (let i = 0; i < this.config.curvePoints; i++) {
-      const z =
-        -this.config.tubeLength * (i / (this.config.curvePoints - 1)) + 20.0;
+      const t = i / (this.config.curvePoints - 1);
+      const z = halfLength - (this.config.tubeLength * t); // Goes from +halfLength to -halfLength
       curvePoints.push(new THREE.Vector3(0, 0, z));
     }
 
-    // Set last point slightly down (like original)
-    curvePoints[this.config.curvePoints - 1].y = -0.06;
-
     // Create the curve
     const curve = new THREE.CatmullRomCurve3(curvePoints);
-
-    // Create tube geometry with custom radius function
-    // Radius starts at tubeRadius and decreases to 20% at the end
-    const radiusFunction = (u) => {
-      // u goes from 0 to 1 along the tube
-      // Start at full radius, end at 20% of radius
-      return this.config.tubeRadius * (1 - u * 0.8);
-    };
 
     this.tubeGeometry = new THREE.TubeGeometry(
       curve,
@@ -109,22 +174,26 @@ export default class Wormhole {
         uColor1: { value: new THREE.Color(0x001a33) }, // Deep ocean blue
         uColor2: { value: new THREE.Color(0x0066cc) }, // Medium ocean blue
         uColor3: { value: new THREE.Color(0x00ddff) }, // Bright cyan (caustics)
+        fogColor: { value: this.scene.fog ? this.scene.fog.color : new THREE.Color(0x001235) },
+        fogNear: { value: this.scene.fog ? this.scene.fog.near : 1 },
+        fogFar: { value: this.scene.fog ? this.scene.fog.far : 100 },
       },
       side: THREE.BackSide,
       transparent: true,
       depthWrite: false,
+      fog: true,
     });
 
-    // Create mesh
+    // Create mesh - centered at origin
     this.tubeMesh = new THREE.Mesh(this.tubeGeometry, this.tubeMaterial);
     this.scene.add(this.tubeMesh);
   }
 
   createSpeedLines() {
     const colors = [
-      new THREE.Color(0x00ffff), // Cyan
-      new THREE.Color(0x00aaff), // Light blue
-      new THREE.Color(0x7444ff), // Purple
+      this.config.speedLineColor1,
+      this.config.speedLineColor2,
+      this.config.speedLineColor3,
     ];
 
     for (let i = 0; i < this.config.speedLineCount; i++) {
@@ -219,6 +288,13 @@ export default class Wormhole {
     // Update shader time uniform
     if (this.tubeMaterial && this.tubeMaterial.uniforms) {
       this.tubeMaterial.uniforms.uTime.value += delta;
+      
+      // Update fog uniforms
+      if (this.scene.fog) {
+        this.tubeMaterial.uniforms.fogColor.value.copy(this.scene.fog.color);
+        this.tubeMaterial.uniforms.fogNear.value = this.scene.fog.near;
+        this.tubeMaterial.uniforms.fogFar.value = this.scene.fog.far;
+      }
     }
   }
 

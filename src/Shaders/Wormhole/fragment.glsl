@@ -2,9 +2,13 @@ uniform float uTime;
 uniform vec3 uColor1;
 uniform vec3 uColor2;
 uniform vec3 uColor3;
+uniform vec3 fogColor;
+uniform float fogNear;
+uniform float fogFar;
 
 varying vec2 vUv;
 varying vec3 vPosition;
+varying float vFogDepth;
 
 // Noise function for organic underwater movement
 float noise(vec2 p) {
@@ -36,7 +40,7 @@ void main() {
   // Add animated rings that flow forward
  float rings = sin((dist * 15.0 + uTime * 1.5)) * 0.5 + 0.5;
   // Flowing vertical lines (like water currents)
- float currents = sin((uv.x * 20.0 - uTime * 2.0 + noise(uv * 2.0))) * 0.5 + 0.5;
+ float currents = sin((uv.x * 20.0 - uTime * 2.0 + noise(uv * 3.0))) * 0.5 + 0.5;
   // Combine patterns with caustics dominating
  float pattern = causticsPattern * 0.6 + rings * 0.2 + currents * 0.2;
   // Create underwater color gradient
@@ -56,6 +60,14 @@ void main() {
   // Fade at tube ends
  float fade = smoothstep(0.0, 0.15, vUv.y) * smoothstep(1.0, 0.85, vUv.y);
   // Add some shimmer/sparkle
- float shimmer = sin(-uTime * 3.0 + dist * 20.0) * 0.1 + 0.9;
-  gl_FragColor = vec4(color * shimmer, 0.7 * fade);
+  float shimmer = sin(-uTime * 3.0 + dist * 20.0) * 0.1 + 0.9;
+  
+  vec3 finalColor = color * shimmer;
+  float alpha = 0.7 * fade;
+  
+  // Apply fog
+  float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
+  finalColor = mix(finalColor, fogColor, fogFactor);
+  
+  gl_FragColor = vec4(finalColor, alpha);
 }

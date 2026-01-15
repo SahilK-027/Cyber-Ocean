@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Sizes from './Utils/Sizes.class';
 import Time from './Utils/Time.class';
+import Mouse from './Input/Mouse.class';
 import Camera from './Core/Camera.class';
 import Renderer from './Core/Renderer.class';
 import PostProcessing from './Systems/PostProcessing.class';
@@ -25,6 +26,7 @@ export default class Game {
 
     this.sizes = new Sizes();
     this.time = new Time();
+    this.mouse = new Mouse();
     this.scene = new THREE.Scene();
     this.camera = new Camera();
     this.renderer = new Renderer();
@@ -53,7 +55,8 @@ export default class Game {
   }
 
   update() {
-    this.camera.update();
+    this.mouse.update(this.time.delta);
+    this.camera.update(this.mouse, this.time.delta);
     this.world.update();
     this.postProcessing.update(this.time.elapsed);
     this.renderer.update();

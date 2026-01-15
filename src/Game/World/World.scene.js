@@ -10,6 +10,7 @@ export default class World {
   constructor() {
     this.game = Game.getInstance();
     this.scene = this.game.scene;
+    this.scene.fog = new THREE.Fog(0x121316, 40, 300);
 
     /**
      * Scene objects
