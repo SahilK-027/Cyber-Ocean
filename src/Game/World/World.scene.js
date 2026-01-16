@@ -5,15 +5,17 @@ import Dolphin from './Components/Dolphin/Dolphin.class';
 import Wormhole from './Components/Wormhole/Wormhole.class';
 import FlowField from './Components/FlowField/FlowField.class';
 import WakeParticles from './Components/WakeParticles/WakeParticles.class';
+import Seabed from './Components/Seabed/Seabed.class';
 
 export default class World {
   constructor() {
     this.game = Game.getInstance();
     this.scene = this.game.scene;
-    this.scene.fog = new THREE.Fog(0x121316, 40, 300);
+    this.scene.fog = new THREE.Fog(0x121316, 60, 180);
 
     this.lighting = new Lighting({ helperEnabled: false });
 
+    this.seabed = new Seabed();
     this.wormhole = new Wormhole();
     this.flowField = new FlowField();
     this.dolphin = new Dolphin();
@@ -22,6 +24,9 @@ export default class World {
 
   update() {
     // Update order optimized: simpler systems first, complex ones last
+    if (this.seabed) {
+      this.seabed.update();
+    }
     if (this.wormhole) {
       this.wormhole.update();
     }

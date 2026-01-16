@@ -14,7 +14,7 @@ export default class Camera {
     this.idealRatio = 16 / 9;
     this.ratioOverflow = 0;
     this.initialCameraPosition = new THREE.Vector3(4.0, 0.8, 3.4);
-    this.baseMaxDistance = 8;
+    this.baseMaxDistance = 300;
 
     this.parallaxAmplitude = 0.2;
     this.parallaxEasingSpeed = 10;
