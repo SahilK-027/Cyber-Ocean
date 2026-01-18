@@ -6,6 +6,7 @@ uniform float uNoiseHeight;
 uniform float uWaveSpeed;
 uniform float uWaveAmplitude;
 uniform float uScrollSpeed;
+uniform float uScrollOffset;
 
 attribute float aRandom;
 attribute vec2 aGridCoord;
@@ -123,8 +124,8 @@ float fbm(vec3 p) {
 void main() {
   vec3 pos = position;
   
-  // Scroll the noise pattern backward (making terrain appear to move forward)
-  float scrollOffset = uTime * uScrollSpeed;
+  // Use the scroll offset uniform instead of calculating in CPU
+  float scrollOffset = uScrollOffset;
   
   // Calculate noise with scrolled coordinates
   vec3 noiseCoord = vec3(

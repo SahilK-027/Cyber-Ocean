@@ -104,6 +104,7 @@ export default class Seabed {
         uFogNear: { value: this.scene.fog ? this.scene.fog.near : 40 },
         uFogFar: { value: this.scene.fog ? this.scene.fog.far : 300 },
         uScrollSpeed: { value: this.config.scrollSpeed },
+        uScrollOffset: { value: 0 },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -125,37 +126,9 @@ export default class Seabed {
   }
 
   updateParticlePositions() {
-    const positions = this.geometry.getAttribute('position');
-    const gridCoords = this.geometry.getAttribute('aGridCoord');
-    const scrollOffset = this.time.elapsedTime * this.config.scrollSpeed;
-    const wrapDistance = this.config.gridDepth;
-
-    for (let i = 0; i < this.config.particleCount; i++) {
-      const i3 = i * 3;
-      const i2 = i * 2;
-
-      // Get original grid coordinates
-      const originalX = gridCoords.array[i2];
-      const originalZ = gridCoords.array[i2 + 1];
-
-      // Apply scrolling
-      let newZ = originalZ - scrollOffset;
-
-      // Proper wrapping: when particles go too far back, move them to front
-      while (newZ < -wrapDistance * 0.5) {
-        newZ += wrapDistance;
-      }
-      while (newZ > wrapDistance * 0.5) {
-        newZ -= wrapDistance;
-      }
-
-      // Update position
-      positions.array[i3] = originalX;
-      positions.array[i3 + 1] = this.config.depth;
-      positions.array[i3 + 2] = newZ;
-    }
-
-    positions.needsUpdate = true;
+    // Move scrolling logic to shader - just update uniform
+    this.material.uniforms.uScrollOffset.value = this.time.elapsedTime * this.config.scrollSpeed;
+    // No need to update 2M particles on CPU anymore!
   }
 
   setDebug() {

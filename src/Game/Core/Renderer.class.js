@@ -39,9 +39,15 @@ export default class Renderer {
       depth: true,
     });
     
-    // Optimize renderer settings
+    // Optimize renderer settings for better performance
     this.rendererInstance.sortObjects = false; // Disable sorting for better performance
     this.rendererInstance.shadowMap.autoUpdate = false; // Manual shadow updates if needed
+    this.rendererInstance.info.autoReset = false; // Disable automatic reset of render info
+    this.rendererInstance.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio
+    
+    // Enable frustum culling optimizations
+    this.rendererInstance.localClippingEnabled = false;
+    this.rendererInstance.physicallyCorrectLights = false;
 
     this.rendererInstance.setClearColor(0x010126);
     this.rendererInstance.toneMapping = THREE.NoToneMapping; // Disable - handle in post-processing

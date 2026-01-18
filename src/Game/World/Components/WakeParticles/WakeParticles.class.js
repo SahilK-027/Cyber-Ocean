@@ -36,6 +36,7 @@ export default class WakeParticles {
     this._tmpSkinned = new THREE.Vector3();
     this._lastDolphinPosition = new THREE.Vector3();
     this._lastDolphinRotation = new THREE.Quaternion();
+    this._lastUniformDolphinPosition = new THREE.Vector3();
     this._positionChangeThreshold = 0.05; // Only update spawn points if dolphin moved significantly
     this._updateFrameSkip = 0;
     this._updateFrameSkipMax = 1; // Update spawn points every other frame
@@ -247,8 +248,22 @@ export default class WakeParticles {
     uniforms.uTime.value = this.time.elapsedTime;
     uniforms.uDeltaTime.value = this.time.delta;
 
+    // Optimize dolphin position updates - only update if dolphin moved significantly
     if (this.dolphin?.dolphin) {
-      uniforms.uDolphinPosition.value.copy(this.dolphin.dolphin.position);
+      const currentPos = this.dolphin.dolphin.position;
+      
+      // Initialize tracking if needed
+      if (!this._lastUniformDolphinPosition) {
+        this._lastUniformDolphinPosition = currentPos.clone();
+        uniforms.uDolphinPosition.value.copy(currentPos);
+      } else {
+        // Only update if dolphin moved more than 0.05 units
+        const distanceMoved = this._lastUniformDolphinPosition.distanceToSquared(currentPos);
+        if (distanceMoved > 0.0025) { // 0.05 * 0.05
+          uniforms.uDolphinPosition.value.copy(currentPos);
+          this._lastUniformDolphinPosition.copy(currentPos);
+        }
+      }
     }
 
     this.updateSpawnPoints();
@@ -263,26 +278,33 @@ export default class WakeParticles {
   updateSpawnPoints() {
     if (!this.dolphinMesh || !this.spawnTexture || !this.sampledData) return;
 
-    // Skip update every other frame to reduce CPU load
+    // Skip update every 4 frames instead of 2 to reduce CPU load further
     this._updateFrameSkip++;
-    if (this._updateFrameSkip < this._updateFrameSkipMax) {
+    if (this._updateFrameSkip < 4) {
       return;
     }
     this._updateFrameSkip = 0;
 
-    // Check if dolphin moved/rotated significantly
+    // Check if dolphin moved/rotated significantly - only update if needed
     if (this.dolphin?.dolphin) {
       const currentPos = this.dolphin.dolphin.position;
       const currentRot = this.dolphin.dolphin.quaternion;
-      const posChanged = this._lastDolphinPosition.distanceToSquared(currentPos) > 
-                         (this._positionChangeThreshold * this._positionChangeThreshold);
-      const rotChanged = Math.abs(this._lastDolphinRotation.dot(currentRot)) < 0.9999; // ~1 degree threshold
       
-      if (!posChanged && !rotChanged && this._lastDolphinPosition.lengthSq() > 0) {
-        // Skip update if dolphin hasn't moved/rotated significantly
+      // Initialize tracking variables if needed
+      if (!this._lastDolphinPosition) {
+        this._lastDolphinPosition = currentPos.clone();
+        this._lastDolphinRotation = currentRot.clone();
+      }
+      
+      const posChanged = this._lastDolphinPosition.distanceToSquared(currentPos) > 0.01; // 0.1 unit threshold
+      const rotChanged = Math.abs(this._lastDolphinRotation.dot(currentRot)) < 0.999; // ~2.5 degree threshold
+      
+      // Only update if significant change occurred
+      if (!posChanged && !rotChanged) {
         return;
       }
       
+      // Update tracking variables
       this._lastDolphinPosition.copy(currentPos);
       this._lastDolphinRotation.copy(currentRot);
     }

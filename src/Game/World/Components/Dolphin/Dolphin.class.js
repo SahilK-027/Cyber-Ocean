@@ -21,6 +21,10 @@ export default class Dolphin {
     this._tmpLocalOut = new THREE.Vector3();
     this._tmpNormal = new THREE.Vector3();
 
+    // Frame optimization flags
+    this._skeletonUpdatedThisFrame = false;
+    this._matrixWorldUpdatedThisFrame = false;
+
     this.setMaterial();
     this.setModelInstance();
     this.setAnimation();
@@ -389,16 +393,25 @@ export default class Dolphin {
 
     const positionAttribute = this.sparklesGeometry.getAttribute('position');
 
-    if (this.dolphinMesh.skeleton) this.dolphinMesh.skeleton.update();
-    this.dolphinMesh.updateMatrixWorld(true);
+    // Only update skeleton if it exists and cache the result
+    if (this.dolphinMesh.skeleton && !this._skeletonUpdatedThisFrame) {
+      this.dolphinMesh.skeleton.update();
+      this._skeletonUpdatedThisFrame = true;
+    }
+    
+    // Only update matrix world if needed
+    if (!this._matrixWorldUpdatedThisFrame) {
+      this.dolphinMesh.updateMatrixWorld(true);
+      this._matrixWorldUpdatedThisFrame = true;
+    }
 
+    // Reuse Vector3 objects to avoid allocations
     const basePos = this._tmpBasePos;
     const skinned = this._tmpSkinned;
     const localOut = this._tmpLocalOut;
     const normalV = this._tmpNormal;
 
     const posAttr = this.dolphinMesh.geometry.getAttribute('position');
-
     const skinnedPositions = [];
 
     for (let i = 0; i < this.sparkleCount; i++) {
@@ -413,8 +426,7 @@ export default class Dolphin {
         localOut.copy(basePos).add(data.offset);
       }
 
-      // Apply skinning transform. We use the vertexIndex as the skin weights anchor so
-      // the offset follows the same bone blend as the vertex — a small approximation but works well.
+      // Apply skinning transform
       if (this.dolphinMesh.applyBoneTransform) {
         skinned.copy(localOut);
         this.dolphinMesh.applyBoneTransform(data.vertexIndex, skinned);
@@ -437,43 +449,90 @@ export default class Dolphin {
     positionAttribute.needsUpdate = true;
 
     this.updateConnectionLines(skinnedPositions);
+    
+    // Reset frame flags for next frame
+    this._skeletonUpdatedThisFrame = false;
+    this._matrixWorldUpdatedThisFrame = false;
   }
 
   updateConnectionLines(positions) {
     let lineIndex = 0;
     const color1 = this.sparklesMaterial.uniforms.uColor1.value;
     const color2 = this.sparklesMaterial.uniforms.uColor2.value;
+    const connectionDistSq = this.connectionDistance * this.connectionDistance; // Use squared distance to avoid sqrt
 
+    // Simple spatial grid optimization
+    const gridSize = this.connectionDistance * 2;
+    const grid = new Map();
+    
+    // Place particles in grid cells
     for (let i = 0; i < positions.length; i++) {
-      for (let j = i + 1; j < positions.length; j++) {
-        const dist = positions[i].distanceTo(positions[j]);
+      const pos = positions[i];
+      const cellX = Math.floor(pos.x / gridSize);
+      const cellY = Math.floor(pos.y / gridSize);
+      const cellZ = Math.floor(pos.z / gridSize);
+      const cellKey = `${cellX},${cellY},${cellZ}`;
+      
+      if (!grid.has(cellKey)) {
+        grid.set(cellKey, []);
+      }
+      grid.get(cellKey).push({ index: i, position: pos });
+    }
 
-        if (dist < this.connectionDistance) {
-          const alpha = 1.0 - dist / this.connectionDistance;
+    // Check connections only within neighboring cells
+    for (let i = 0; i < positions.length; i++) {
+      const pos = positions[i];
+      const cellX = Math.floor(pos.x / gridSize);
+      const cellY = Math.floor(pos.y / gridSize);
+      const cellZ = Math.floor(pos.z / gridSize);
+      
+      // Check current cell and 26 neighboring cells
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dz = -1; dz <= 1; dz++) {
+            const neighborKey = `${cellX + dx},${cellY + dy},${cellZ + dz}`;
+            const neighbors = grid.get(neighborKey);
+            
+            if (neighbors) {
+              for (const neighbor of neighbors) {
+                const j = neighbor.index;
+                if (j <= i) continue; // Avoid duplicate pairs
+                
+                const distSq = pos.distanceToSquared(neighbor.position);
+                
+                if (distSq < connectionDistSq) {
+                  const alpha = 1.0 - Math.sqrt(distSq) / this.connectionDistance;
 
-          this.linePositions[lineIndex * 6] = positions[i].x;
-          this.linePositions[lineIndex * 6 + 1] = positions[i].y;
-          this.linePositions[lineIndex * 6 + 2] = positions[i].z;
+                  this.linePositions[lineIndex * 6] = pos.x;
+                  this.linePositions[lineIndex * 6 + 1] = pos.y;
+                  this.linePositions[lineIndex * 6 + 2] = pos.z;
 
-          this.linePositions[lineIndex * 6 + 3] = positions[j].x;
-          this.linePositions[lineIndex * 6 + 4] = positions[j].y;
-          this.linePositions[lineIndex * 6 + 5] = positions[j].z;
+                  this.linePositions[lineIndex * 6 + 3] = neighbor.position.x;
+                  this.linePositions[lineIndex * 6 + 4] = neighbor.position.y;
+                  this.linePositions[lineIndex * 6 + 5] = neighbor.position.z;
 
-          const mixedColor = color1
-            .clone()
-            .lerp(color2, this.sampledData[i].random);
-          this.lineColors[lineIndex * 6] = mixedColor.r * alpha;
-          this.lineColors[lineIndex * 6 + 1] = mixedColor.g * alpha;
-          this.lineColors[lineIndex * 6 + 2] = mixedColor.b * alpha;
+                  const mixedColor = color1
+                    .clone()
+                    .lerp(color2, this.sampledData[i].random);
+                  this.lineColors[lineIndex * 6] = mixedColor.r * alpha;
+                  this.lineColors[lineIndex * 6 + 1] = mixedColor.g * alpha;
+                  this.lineColors[lineIndex * 6 + 2] = mixedColor.b * alpha;
 
-          this.lineColors[lineIndex * 6 + 3] = mixedColor.r * alpha;
-          this.lineColors[lineIndex * 6 + 4] = mixedColor.g * alpha;
-          this.lineColors[lineIndex * 6 + 5] = mixedColor.b * alpha;
+                  this.lineColors[lineIndex * 6 + 3] = mixedColor.r * alpha;
+                  this.lineColors[lineIndex * 6 + 4] = mixedColor.g * alpha;
+                  this.lineColors[lineIndex * 6 + 5] = mixedColor.b * alpha;
 
-          lineIndex++;
+                  lineIndex++;
 
+                  if (lineIndex >= this.linePositions.length / 6) break;
+                }
+              }
+            }
+            if (lineIndex >= this.linePositions.length / 6) break;
+          }
           if (lineIndex >= this.linePositions.length / 6) break;
         }
+        if (lineIndex >= this.linePositions.length / 6) break;
       }
       if (lineIndex >= this.linePositions.length / 6) break;
     }

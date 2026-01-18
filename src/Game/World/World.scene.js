@@ -23,6 +23,13 @@ export default class World {
   }
 
   update() {
+    // Get camera frustum for culling
+    const camera = this.game.camera.cameraInstance;
+    const frustum = new THREE.Frustum();
+    const cameraMatrix = new THREE.Matrix4();
+    cameraMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(cameraMatrix);
+
     // Update order optimized: simpler systems first, complex ones last
     if (this.seabed) {
       this.seabed.update();
@@ -31,7 +38,10 @@ export default class World {
       this.wormhole.update();
     }
     if (this.flowField) {
-      this.flowField.update();
+      // Only update FlowField if visible
+      if (this.flowField.points && frustum.intersectsObject(this.flowField.points)) {
+        this.flowField.update();
+      }
     }
     if (this.dolphin) {
       this.dolphin.update();

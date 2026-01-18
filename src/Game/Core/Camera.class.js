@@ -334,35 +334,35 @@ export default class Camera {
         noiseRotY = 0,
         noiseRotZ = 0;
 
-      if (this.randomness.enabled) {
+      // Reduce noise calculation frequency - only update every 3 frames
+      if (!this._noiseFrameSkip) this._noiseFrameSkip = 0;
+      this._noiseFrameSkip++;
+      
+      if (this.randomness.enabled && this._noiseFrameSkip >= 3) {
+        this._noiseFrameSkip = 0;
+        
         const noiseTime = this.floatTime * this.randomness.speed;
         const intensity = this.randomness.intensity;
 
-        noiseX =
-          this.smoothNoise(noiseTime, this.noiseOffsets.x) *
-          this.floatAmplitude.x *
-          intensity;
-        noiseY =
-          this.smoothNoise(noiseTime, this.noiseOffsets.y) *
-          this.floatAmplitude.y *
-          intensity;
-        noiseZ =
-          this.smoothNoise(noiseTime, this.noiseOffsets.z) *
-          this.floatAmplitude.z *
-          intensity;
-
-        noiseRotX =
-          this.smoothNoise(noiseTime * 0.7, this.noiseOffsets.rotX) *
-          this.rotationAmplitude.x *
-          intensity;
-        noiseRotY =
-          this.smoothNoise(noiseTime * 0.6, this.noiseOffsets.rotY) *
-          this.rotationAmplitude.y *
-          intensity;
-        noiseRotZ =
-          this.smoothNoise(noiseTime * 0.8, this.noiseOffsets.rotZ) *
-          this.rotationAmplitude.z *
-          intensity;
+        // Cache noise values to reuse for 3 frames
+        this._cachedNoise = {
+          x: this.smoothNoise(noiseTime, this.noiseOffsets.x) * this.floatAmplitude.x * intensity,
+          y: this.smoothNoise(noiseTime, this.noiseOffsets.y) * this.floatAmplitude.y * intensity,
+          z: this.smoothNoise(noiseTime, this.noiseOffsets.z) * this.floatAmplitude.z * intensity,
+          rotX: this.smoothNoise(noiseTime * 0.7, this.noiseOffsets.rotX) * this.rotationAmplitude.x * intensity,
+          rotY: this.smoothNoise(noiseTime * 0.6, this.noiseOffsets.rotY) * this.rotationAmplitude.y * intensity,
+          rotZ: this.smoothNoise(noiseTime * 0.8, this.noiseOffsets.rotZ) * this.rotationAmplitude.z * intensity
+        };
+      }
+      
+      // Use cached noise values
+      if (this._cachedNoise) {
+        noiseX = this._cachedNoise.x;
+        noiseY = this._cachedNoise.y;
+        noiseZ = this._cachedNoise.z;
+        noiseRotX = this._cachedNoise.rotX;
+        noiseRotY = this._cachedNoise.rotY;
+        noiseRotZ = this._cachedNoise.rotZ;
       }
 
       const floatX =

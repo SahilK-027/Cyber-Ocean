@@ -111,6 +111,19 @@ export default class FlowField {
   getFlowField(x, y, z, time, particle) {
     const scale = this.config.noiseScale;
     const t = time * 0.3;
+    
+    // Use cached noise values if available and not too old
+    const cacheKey = `${Math.floor(x * 10)}_${Math.floor(y * 10)}_${Math.floor(z * 10)}_${Math.floor(t * 10)}`;
+    if (this._noiseCache && this._noiseCache[cacheKey] && this._noiseCache.frame === this._frameCount) {
+      const cached = this._noiseCache[cacheKey];
+      return new THREE.Vector3(cached.x, cached.y, cached.z);
+    }
+
+    // Initialize cache if needed
+    if (!this._noiseCache || this._noiseCache.frame !== this._frameCount) {
+      this._noiseCache = { frame: this._frameCount };
+    }
+
     const scale2 = scale * 2;
     const t15 = t * 1.5;
 
@@ -146,11 +159,16 @@ export default class FlowField {
     const swirlX = Math.cos(swirl) * turbulence;
     const swirlY = Math.sin(swirl) * turbulence;
 
-    return new THREE.Vector3(
-      cosAngle1 * cosAngle2 + swirlX,
-      sinAngle2 + swirlY,
-      sinAngle1 * cosAngle2 + nz * 0.3
-    );
+    const result = {
+      x: cosAngle1 * cosAngle2 + swirlX,
+      y: sinAngle2 + swirlY,
+      z: sinAngle1 * cosAngle2 + nz * 0.3
+    };
+
+    // Cache the result
+    this._noiseCache[cacheKey] = result;
+
+    return new THREE.Vector3(result.x, result.y, result.z);
   }
 
   update() {
@@ -176,6 +194,10 @@ export default class FlowField {
     const velDamp = 0.95;
     const velBlend = 0.05;
     const flowSpeed = this.config.flowSpeed;
+
+    // Reduce noise calculation frequency - only update every few frames
+    const shouldUpdateNoise = this._frameCount % 3 === 0;
+    this._frameCount = (this._frameCount || 0) + 1;
 
     for (let i = 0; i < this.config.particleCount; i++) {
       const i3 = i * 3;

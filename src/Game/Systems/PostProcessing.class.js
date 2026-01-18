@@ -131,8 +131,8 @@ export default class PostProcessing {
     const targetVignette = this.isDragging ? this.maxVignetteStrength : this.baseVignetteStrength;
     const targetGlow = this.isDragging ? this.maxGlowIntensity : this.baseGlowIntensity;
 
-    // Exponential smoothing for natural feel
-    const lerpFactor = 1 - Math.exp(-this.easeK * deltaTime);
+    // Use simpler linear interpolation instead of exponential smoothing
+    const lerpFactor = Math.min(deltaTime * this.easeK, 1.0);
 
     // Interpolate current values towards targets
     this.currentRGBShift = this.lerp(this.currentRGBShift, targetRGBShift, lerpFactor);
