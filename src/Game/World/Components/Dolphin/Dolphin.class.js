@@ -15,7 +15,7 @@ export default class Dolphin {
 
     this.modelResource = this.resources.items.dolphinAnimatedModel;
 
-    this.outset = 0.02;
+    this.outset = 0.017;
     this._tmpBasePos = new THREE.Vector3();
     this._tmpSkinned = new THREE.Vector3();
     this._tmpLocalOut = new THREE.Vector3();

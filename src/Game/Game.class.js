@@ -57,7 +57,7 @@ export default class Game {
     this.mouse.update(this.time.delta);
     this.camera.update(this.mouse, this.time.delta);
     this.world.update();
-    this.postProcessing.update(this.time.elapsed);
+    this.postProcessing.update(this.time.elapsed, this.time.delta);
     this.renderer.update();
   }
 
