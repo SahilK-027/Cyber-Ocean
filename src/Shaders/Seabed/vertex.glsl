@@ -123,27 +123,22 @@ float fbm(vec3 p) {
 void main() {
   vec3 pos = position;
   
-  // Scroll the particles backward in world space
+  // Scroll the noise pattern backward (making terrain appear to move forward)
   float scrollOffset = uTime * uScrollSpeed;
-  pos.z -= scrollOffset;
   
-  // Wrap particles to create infinite scrolling effect
-  // When particles go too far back, wrap them to the front
-  float wrapDistance = 300.0; // Should match gridDepth from config
-  pos.z = mod(pos.z + wrapDistance * 0.5, wrapDistance) - wrapDistance * 0.5;
-  
+  // Calculate noise with scrolled coordinates
   vec3 noiseCoord = vec3(
     pos.x * uNoiseScale,
     0.0,
-    pos.z * uNoiseScale
+    (pos.z + scrollOffset) * uNoiseScale  // Add scroll offset to Z
   );
   
   // Multi-octave noise for terrain detail
   float noise = fbm(noiseCoord);
   
   // Scrolling wave pattern
-  float wave = sin(pos.x * 0.3) * 
-               cos(pos.z * 0.3) * 
+  float wave = sin(pos.x * 0.3 + uTime * uWaveSpeed) * 
+               cos((pos.z + scrollOffset) * 0.3 + uTime * uWaveSpeed) * 
                uWaveAmplitude;
   
   // Combine noise and waves for height

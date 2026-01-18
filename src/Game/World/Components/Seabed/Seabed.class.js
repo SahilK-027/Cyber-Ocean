@@ -23,8 +23,8 @@ export default class Seabed {
       color3: new THREE.Color(0x2eb8e6),
       glowIntensity: 0.6,
       waveSpeed: 0.15,
-      waveAmplitude: 0.8,
-      scrollSpeed: 2.0, // Speed of backward scrolling
+      waveAmplitude: 1.8,
+      scrollSpeed: 3.5,
     };
 
     this.init();
@@ -64,15 +64,15 @@ export default class Seabed {
 
     this.geometry.setAttribute(
       'position',
-      new THREE.BufferAttribute(positions, 3)
+      new THREE.BufferAttribute(positions, 3),
     );
     this.geometry.setAttribute(
       'aRandom',
-      new THREE.BufferAttribute(randoms, 1)
+      new THREE.BufferAttribute(randoms, 1),
     );
     this.geometry.setAttribute(
       'aGridCoord',
-      new THREE.BufferAttribute(gridCoords, 2)
+      new THREE.BufferAttribute(gridCoords, 2),
     );
   }
 
@@ -109,13 +109,49 @@ export default class Seabed {
 
   update() {
     this.material.uniforms.uTime.value = this.time.elapsedTime;
+    this.material.uniforms.uScrollSpeed.value = this.config.scrollSpeed;
 
-    // Update fog uniforms if fog exists
+    this.updateParticlePositions();
+
     if (this.scene.fog) {
       this.material.uniforms.uFogColor.value.copy(this.scene.fog.color);
       this.material.uniforms.uFogNear.value = this.scene.fog.near;
       this.material.uniforms.uFogFar.value = this.scene.fog.far;
     }
+  }
+
+  updateParticlePositions() {
+    const positions = this.geometry.getAttribute('position');
+    const gridCoords = this.geometry.getAttribute('aGridCoord');
+    const scrollOffset = this.time.elapsedTime * this.config.scrollSpeed;
+    const wrapDistance = this.config.gridDepth;
+
+    for (let i = 0; i < this.config.particleCount; i++) {
+      const i3 = i * 3;
+      const i2 = i * 2;
+
+      // Get original grid coordinates
+      const originalX = gridCoords.array[i2];
+      const originalZ = gridCoords.array[i2 + 1];
+
+      // Apply scrolling
+      let newZ = originalZ - scrollOffset;
+
+      // Proper wrapping: when particles go too far back, move them to front
+      while (newZ < -wrapDistance * 0.5) {
+        newZ += wrapDistance;
+      }
+      while (newZ > wrapDistance * 0.5) {
+        newZ -= wrapDistance;
+      }
+
+      // Update position
+      positions.array[i3] = originalX;
+      positions.array[i3 + 1] = this.config.depth;
+      positions.array[i3 + 2] = newZ;
+    }
+
+    positions.needsUpdate = true;
   }
 
   setDebug() {
@@ -133,7 +169,7 @@ export default class Seabed {
         label: 'Depth (Y)',
         onChange: () => this.updateDepth(),
       },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
@@ -146,77 +182,77 @@ export default class Seabed {
         label: 'Center Z',
         onChange: () => this.updateDepth(),
       },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uSize,
       'value',
       { min: 1, max: 10, step: 0.5, label: 'Particle Size' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uNoiseScale,
       'value',
       { min: 0.01, max: 0.3, step: 0.01, label: 'Noise Scale' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uNoiseHeight,
       'value',
       { min: 0, max: 20, step: 0.5, label: 'Noise Height' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uWaveSpeed,
       'value',
       { min: 0, max: 1, step: 0.05, label: 'Wave Speed' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.config,
       'scrollSpeed',
       { min: 0, max: 10, step: 0.5, label: 'Scroll Speed' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uWaveAmplitude,
       'value',
       { min: 0, max: 3, step: 0.1, label: 'Wave Amplitude' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uGlowIntensity,
       'value',
       { min: 0, max: 2, step: 0.1, label: 'Glow Intensity' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uColor1,
       'value',
       { label: 'Color Deep' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uColor2,
       'value',
       { label: 'Color Mid' },
-      'Seabed'
+      'Seabed',
     );
 
     debug.add(
       this.material.uniforms.uColor3,
       'value',
       { label: 'Color Peak' },
-      'Seabed'
+      'Seabed',
     );
   }
 
