@@ -443,6 +443,9 @@
           15px 100%,
           0 50%
         );
+        white-space: nowrap;
+        display: inline-block;
+        min-width: fit-content;
       }
 
       .logo::before {
@@ -495,6 +498,8 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        white-space: nowrap;
+        min-width: fit-content;
       }
 
       .panel-header .dot {
@@ -618,6 +623,95 @@
         color: var(--neon-blue);
       }
 
+      /* Social Links */
+      .social-links {
+        position: fixed;
+        bottom: 20px;
+        left: 40px;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        pointer-events: auto;
+        z-index: 20;
+      }
+
+      .social-label {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        color: rgba(255, 255, 255, 0.4);
+        text-transform: uppercase;
+        margin-right: 0.5rem;
+      }
+
+      .social-link {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        background: rgba(0, 255, 255, 0.05);
+        clip-path: polygon(
+          6px 0,
+          calc(100% - 6px) 0,
+          100% 6px,
+          100% calc(100% - 6px),
+          calc(100% - 6px) 100%,
+          6px 100%,
+          0 calc(100% - 6px),
+          0 6px
+        );
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .social-link::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          transparent,
+          rgba(0, 255, 255, 0.2),
+          transparent
+        );
+        transform: translateX(-100%) translateY(-100%);
+        transition: transform 0.5s ease;
+      }
+
+      .social-link:hover {
+        background: rgba(0, 255, 255, 0.15);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+          inset 0 0 10px rgba(0, 255, 255, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .social-link:hover::before {
+        transform: translateX(100%) translateY(100%);
+      }
+
+      .social-link svg {
+        width: 18px;
+        height: 18px;
+        fill: var(--neon-cyan);
+        filter: drop-shadow(0 0 4px var(--neon-cyan));
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 1;
+      }
+
+      .social-link:hover svg {
+        fill: #fff;
+        filter: drop-shadow(0 0 8px var(--neon-cyan));
+      }
+
+
+
       /* Audio toggle button */
       .audio-toggle {
         display: flex;
@@ -675,6 +769,16 @@
       .coord {
         font-family: 'Orbitron', sans-serif;
         color: var(--neon-blue);
+        display: inline-block;
+        min-width: fit-content;
+      }
+
+      /* Prevent layout shift during text scramble */
+      .glitch-active {
+        display: inline-block;
+        min-width: fit-content;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.05em;
       }
 
       /* Animations */
@@ -760,6 +864,10 @@
         .corner.tr, .corner.br { right: 10px; }
         .corner.tl, .corner.tr { top: 10px; }
         .corner.bl, .corner.br { bottom: 10px; }
+        .social-links { left: 15px; gap: 0.8rem; }
+        .social-link { width: 32px; height: 32px; }
+        .social-link svg { width: 16px; height: 16px; }
+        .social-label { font-size: 0.55rem; }
       }
 
       /* Mobile */
@@ -843,6 +951,22 @@
         .corner.tr, .corner.br { right: 8px; }
         .corner.tl, .corner.tr { top: 8px; }
         .corner.bl, .corner.br { bottom: 8px; }
+        .social-links {
+          left: 10px;
+          bottom: 140px;
+          gap: 0.6rem;
+        }
+        .social-label {
+          display: none;
+        }
+        .social-link {
+          width: 30px;
+          height: 30px;
+        }
+        .social-link svg {
+          width: 15px;
+          height: 15px;
+        }
       }
 
       /* Small mobile */
@@ -864,6 +988,18 @@
           font-size: 0.45rem;
           left: 8px;
           right: 8px;
+        }
+        .social-links {
+          left: 8px;
+          gap: 0.5rem;
+        }
+        .social-link {
+          width: 28px;
+          height: 28px;
+        }
+        .social-link svg {
+          width: 14px;
+          height: 14px;
         }
       }
     </style>
@@ -984,6 +1120,21 @@
         <span>FPS <span class="coord" id="fps-display">60</span></span>
       </div>
 
+      <!-- Social Links -->
+      <div class="social-links">
+        <span class="social-label">Connect</span>
+        <a href="https://github.com/SahilK-027" target="_blank" rel="noopener" class="social-link" aria-label="GitHub Profile">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 0.297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+          </svg>
+        </a>
+        <a href="https://x.com/SahilK027" target="_blank" rel="noopener" class="social-link" aria-label="X (Twitter) Profile">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+        </a>
+      </div>
+
       <!-- Attribution -->
       <div class="attribution">
         <a href="https://skfb.ly/oTOws" target="_blank" rel="noopener">Dolphin</a> by <a href="https://sketchfab.com/Alex_Pfe" target="_blank" rel="noopener">Alex_Pfe</a> · <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
@@ -1013,6 +1164,13 @@
           let iterations = 0;
           const maxIterations = 12;
 
+          // Store original width to prevent layout shift
+          const originalWidth = el.offsetWidth;
+          if (originalWidth > 0) {
+            el.style.minWidth = `${originalWidth}px`;
+            el.style.display = 'inline-block';
+          }
+
           const interval = setInterval(() => {
             el.textContent = original
               .split('')
@@ -1031,6 +1189,10 @@
             if (iterations >= maxIterations) {
               clearInterval(interval);
               el.textContent = original;
+              // Reset width constraint
+              if (originalWidth > 0) {
+                el.style.minWidth = '';
+              }
             }
           }, 40);
         }
@@ -1068,6 +1230,13 @@
           let iterations = 0;
           const maxIterations = 10;
 
+          // Store original width to prevent layout shift
+          const originalWidth = el.offsetWidth;
+          if (originalWidth > 0) {
+            el.style.minWidth = `${originalWidth}px`;
+            el.style.display = 'inline-block';
+          }
+
           el.glitchInterval = setInterval(() => {
             el.textContent = original
               .split('')
@@ -1087,6 +1256,10 @@
               clearInterval(el.glitchInterval);
               el.glitchInterval = null;
               el.textContent = original;
+              // Reset width constraint
+              if (originalWidth > 0) {
+                el.style.minWidth = '';
+              }
             }
           }, 30);
         }
